@@ -11,7 +11,7 @@ const createPortalUser = async (userBody) => {
   if (await PortalUser.isEmailTaken(userBody.email)) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
   }
-  
+
   // create security object
   const security = {
     password: userBody.password,
@@ -35,6 +35,10 @@ const queryPortalUsers = async (filter, options) => {
   return users;
 };
 
+const getPortalUsers = async () => {
+  const users = await PortalUser.find();
+  return users;
+};
 /**
  * Get user by id
  * @param {ObjectId} id
@@ -90,6 +94,7 @@ module.exports = {
   createPortalUser,
   queryPortalUsers,
   getPortalUserById,
+  getPortalUsers,
   getPortalUserByEmail,
   updatePortalUserById,
   deletePortalUserById,

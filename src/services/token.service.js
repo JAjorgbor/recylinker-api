@@ -64,7 +64,7 @@ const saveToken = async (token, userId, expires, type, blacklisted = false) => {
  * @returns {Promise<Token>}
  */
 const verifyToken = async (token, type) => {
-  if (type === tokenTypes.VERIFY_EMAIL) aco;
+  // if (type === tokenTypes.VERIFY_EMAIL) aco;
   const payload = jwt.verify(token, config.jwt.secret);
   const tokenDoc = await Token.findOne({ token, type, user: payload.sub, blacklisted: false });
   if (!tokenDoc) {
@@ -107,7 +107,6 @@ const verifyUpdateEmailCode = async (code) => {
   await Token.deleteOne({ token: code, type: tokenTypes.UPDATE_EMAIL });
   return tokenDoc;
 };
-
 
 /**
  * Generate auth tokens
@@ -175,7 +174,6 @@ const generateConsoleUserInviteToken = async (payload) => {
   };
   return jwt.sign(JWTPayload, config.jwt.secret);
 };
-
 
 /**
  * Generate verify email code

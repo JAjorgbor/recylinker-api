@@ -3,6 +3,8 @@ const auth = require('../../middlewares/auth');
 const validate = require('../../middlewares/validate');
 const portalUserValidation = require('../../validations/portal.user.validation');
 const portalUserController = require('../../controllers/portal.user.controller');
+const { PortalUser } = require('../../models');
+const { jwt } = require('../../config/config');
 
 const router = express.Router();
 
@@ -11,12 +13,13 @@ router
   .post(auth('manageUsers'), validate(portalUserValidation.createPortalUser), portalUserController.createPortalUser)
   .get(auth('getPortalUsers'), validate(portalUserValidation.getPortalUsers), portalUserController.getPortalUsers);
 
+router.route('/all').get(portalUserController.getPortalUsers);
+router.route('/via-token').get(auth(), portalUserController.getPortalUserViaToken);
 router
   .route('/:userId')
   .get(auth('getPortalUsers'), validate(portalUserValidation.getPortalUser), portalUserController.getPortalUser)
   .patch(auth('manageUsers'), validate(portalUserValidation.updatePortalUser), portalUserController.updatePortalUser)
   .delete(auth('manageUsers'), validate(portalUserValidation.deletePortalUser), portalUserController.deletePortalUser);
-
 
 module.exports = router;
 

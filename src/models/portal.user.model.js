@@ -6,12 +6,20 @@ const { roles } = require('../config/roles');
 
 const portalUserSchema = mongoose.Schema(
   {
+    avatar: {
+      type: String,
+    },
     firstName: {
       type: String,
       required: true,
       trim: true,
     },
     lastName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    phoneNumber: {
       type: String,
       required: true,
       trim: true,
@@ -47,14 +55,20 @@ const portalUserSchema = mongoose.Schema(
         default: 'credentials',
       },
     },
-
+    address: {
+      street: { type: String, required: true, trim: true },
+      city: { type: String, required: true, trim: true },
+      state: { type: String, default: 'abuja', trim: true },
+      longitude: { type: Number, required: true, trim: true },
+      latitude: { type: Number, required: true, trim: true },
+    },
     dateOfBirth: {
       type: Date,
     },
 
     otpOption: {
       type: Boolean,
-      default: true,
+      default: false,
     },
 
     role: {
@@ -115,7 +129,6 @@ portalUserSchema.pre('save', async function (next) {
   }
   next();
 });
-
 
 /**
  * @typedef PortalUser

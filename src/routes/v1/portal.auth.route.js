@@ -3,10 +3,15 @@ const validate = require('../../middlewares/validate');
 const portalAuthValidation = require('../../validations/portal.auth.validation');
 const portalAuthController = require('../../controllers/portal.auth.controller');
 const auth = require('../../middlewares/auth');
+const { multerUploader } = require('../../utils/imageProcessor');
 
 const router = express.Router();
-
-router.post('/create-account', validate(portalAuthValidation.createAccount), portalAuthController.createAccount);
+router.post(
+  '/create-account',
+  multerUploader.single('avatar'),
+  validate(portalAuthValidation.createAccount),
+  portalAuthController.createAccount
+);
 router.post('/login', validate(portalAuthValidation.login), portalAuthController.login);
 router.patch('/update-OTP-option', auth(), portalAuthController.updateOtpOption);
 router.post('/logout', validate(portalAuthValidation.logout), portalAuthController.logout);
@@ -14,7 +19,11 @@ router.post('/refresh-tokens', validate(portalAuthValidation.refreshTokens), por
 router.post('/reset-password', validate(portalAuthValidation.resetPassword), portalAuthController.resetPassword);
 router.put('/set-new-password/:token', validate(portalAuthValidation.setNewPassword), portalAuthController.setNewPassword);
 router.post('/update-email', auth(), validate(portalAuthValidation.updateEmail), portalAuthController.updateEmail);
-router.patch('/update-email/:code', validate(portalAuthValidation.confirmUpdateEmail), portalAuthController.confirmUpdateEmail);
+router.patch(
+  '/update-email/:code',
+  validate(portalAuthValidation.confirmUpdateEmail),
+  portalAuthController.confirmUpdateEmail
+);
 router.post('/resend-verification-email', auth(), portalAuthController.resendVerificationEmail);
 router.post('/verify-email', auth(), validate(portalAuthValidation.verifyEmail), portalAuthController.verifyEmail);
 router.post('/verify-otp', auth(), validate(portalAuthValidation.verifyOTP), portalAuthController.verifyOTP);
@@ -35,36 +44,6 @@ module.exports = router;
  *   post:
  *     summary: Register as user
  *     tags: [Portal Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - firstName
- *               - lastName
- *               - email
- *               - password
- *             properties:
- *               firstName:
- *                 type: string
- *               lastName:
- *                 type: string
- *               email:
- *                 type: string
- *                 format: email
- *                 description: must be unique
- *               password:
- *                 type: string
- *                 format: password
- *                 minLength: 8
- *                 description: At least one number and one letter
- *             example:
- *               firstName: John
- *               lastName: Doe
- *               email: fake@example.com
- *               password: password1
  *     responses:
  *       "201":
  *         description: Created
@@ -79,6 +58,47 @@ module.exports = router;
  *                   $ref: '#/components/schemas/AuthTokens'
  *       "400":
  *         $ref: '#/components/responses/DuplicateEmail'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               avatar:
+ *                 type: file
+ *                 description: User profile avatar
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               phoneNumber:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *               confirmPassword:
+ *                 type: string
+ *                 minLength: 8
+ *               address:
+ *                 $ref: '#/components/schemas/PortalUserAddress'
+ *           examples:
+ *             example:
+ *               avatar: (binary data)
+ *               firstName: John
+ *               lastName: Doe
+ *               email: john@example.com
+ *               phoneNumber: "090003456"
+ *               password: password1
+ *               confirmPassword: password1
+ *               address:
+ *                 street: No 15 Chibok Street
+ *                 state: abuja
+ *                 longitude: 1000101011
+ *                 latitude: 2000201022
  */
 
 /**
@@ -239,7 +259,6 @@ module.exports = router;
  *         $ref: '#/components/responses/NotFound'
  */
 
-
 /**
  * @swagger
  * /portal/auth/set-new-password/{token}:
@@ -323,7 +342,6 @@ module.exports = router;
  *         $ref: '#/components/responses/Unauthorized'
  */
 
-
 /**
  * @swagger
  * /portal/auth/update-email/{code}:
@@ -357,7 +375,6 @@ module.exports = router;
  *       "401":
  *         $ref: '#/components/responses/Unauthorized'
  */
-
 
 /**
  * @swagger
@@ -403,4 +420,3 @@ module.exports = router;
  *               code: 401
  *               message: Access verification with OTP failed
  */
-

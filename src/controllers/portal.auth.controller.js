@@ -2,25 +2,36 @@ const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
 const ApiError = require('../utils/ApiError');
 const { App } = require('../models');
+const { cloudinary, multerUploader, createPublicId, deleteMulterUpload } = require('../utils/imageProcessor');
 
 const { portalAuthService, portalUserService, tokenService, emailService, appService } = require('../services');
 
 const createAccount = catchAsync(async (req, res) => {
-  req.body.app = await App.findOne({});
-  const user = await portalUserService.createPortalUser(req.body);
+  const { file, body } = req;
+  const { password, confirmPassword } = body;
+  if (password !== confirmPassword) throw new ApiError(httpStatus.BAD_REQUEST, 'Passwords must match');
+  if (file?.path) {
+    const storedImage = await cloudinary.uploader.upload(file.path, {
+      folder: `recylinker/residents/profile-avatars`,
+      public_id: createPublicId(body.firstName + body.lastName, 'profile-avatar', file.filename),
+    });
+    body.avatar = storedImage.secure_url;
+    deleteMulterUpload(file.path);
+  }
+  const user = await portalUserService.createPortalUser(body);
   const tokens = await tokenService.generateAuthTokens(user);
 
-  const { email, firstName } = req.body;
+  const { email, firstName } = body;
 
   // Generate the verification code for email verification
-  const emailVerificationCode = await tokenService.generateVerifyEmailCode(user);
+  // const emailVerificationCode = await tokenService.generateVerifyEmailCode(user);
 
   // Send the verification code to the user's email for email verification
-  await emailService.PortalUserEmailVerificationCode({
-    to: email,
-    firstName,
-    vCode: emailVerificationCode,
-  });
+  // await emailService.PortalUserEmailVerificationCode({
+  //   to: email,
+  //   firstName,
+  //   vCode: emailVerificationCode,
+  // });
 
   res.status(httpStatus.CREATED).send({ user, tokens });
 });
@@ -37,18 +48,18 @@ const login = catchAsync(async (req, res) => {
   // const activeApp = await appService.getApp(user.app);
   let useOtp = user.otpOption;
   // let appOtp = activeApp.portalOtpOption;
-  if (useOtp === 'required') {
-    // send user OTP
-    const accessOTP = await tokenService.generateUserAccessOTP(user);
+  // if (useOtp === 'required') {
+  //   // send user OTP
+  //   const accessOTP = await tokenService.generateUserAccessOTP(user);
 
-    await emailService.PortalVerifyUserAccessWithOTP({
-      to: user.email,
-      firstName: user.firstName,
-      otp: accessOTP,
-      logoEmail: activeApp?.branding?.logoEmail,
-      portalUrl: activeApp?.portalUrl ?? process.env.PORTAL_URL,
-    });
-  }
+  //   await emailService.PortalVerifyUserAccessWithOTP({
+  //     to: user.email,
+  //     firstName: user.firstName,
+  //     otp: accessOTP,
+  //     logoEmail: activeApp?.branding?.logoEmail,
+  //     portalUrl: activeApp?.portalUrl ?? process.env.PORTAL_URL,
+  //   });
+  // }
   res.send({ user, tokens });
 });
 

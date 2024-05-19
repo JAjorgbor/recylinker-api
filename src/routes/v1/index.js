@@ -6,9 +6,12 @@ const config = require('../../config/config');
 // Portal Routes
 const portalAuthRoute = require('./portal.auth.route');
 const portalUserRoute = require('./portal.user.route');
+
 // Console Routes
 const consoleAuthRoute = require('./console.auth.route');
 const consoleUserRoute = require('./console.user.route');
+// Dummy Route
+const dummyRoute = require('./dummy.route');
 
 const router = express.Router();
 
@@ -35,9 +38,12 @@ const defaultRoutes = [
     path: '/console/teams',
     route: consoleUserRoute,
   },
+  // dummy
+  {
+    path: '/dummy',
+    route: dummyRoute,
+  },
 ];
-
-
 
 const devRoutes = [
   // routes available only in development mode
@@ -46,7 +52,6 @@ const devRoutes = [
     route: docsRoute,
   },
 ];
-
 
 router.get('/health', (req, res) => {
   const healthCheck = {
@@ -61,7 +66,6 @@ router.get('/health', (req, res) => {
     res.status(503).send();
   }
 });
-
 
 defaultRoutes.forEach((route) => {
   router.use(route.path, route.route);

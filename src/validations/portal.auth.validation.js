@@ -3,10 +3,24 @@ const { password } = require('./custom.validation');
 
 const createAccount = {
   body: Joi.object().keys({
+    avatar: Joi.object({
+      file: Joi.any()
+        .meta({ swaggerType: 'file' }) // Specify the type as file for Swagger documentation
+        .description('Profile avatar to upload'),
+    }),
     email: Joi.string().required().email(),
     password: Joi.string().required().custom(password),
+    confirmPassword: Joi.string().required().custom(password),
     firstName: Joi.string().required(),
     lastName: Joi.string().required(),
+    phoneNumber: Joi.string().required(),
+    address: Joi.object().keys({
+      street: Joi.string().required(),
+      state: Joi.string(),
+      city: Joi.string().required(),
+      longitude: Joi.number().required(),
+      latitude: Joi.number().required(),
+    }),
   }),
 };
 
@@ -83,6 +97,4 @@ module.exports = {
   confirmUpdateEmail,
   verifyEmail,
   verifyOTP,
-  updateEmail,
-  confirmUpdateEmail,
 };

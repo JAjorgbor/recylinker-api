@@ -23,6 +23,9 @@ const getPortalUser = catchAsync(async (req, res) => {
   }
   res.send(user);
 });
+const getPortalUserViaToken = catchAsync(async (req, res) => {
+  res.send(req.user);
+});
 
 const updatePortalUser = catchAsync(async (req, res) => {
   const user = await portalUserService.updatePortalUserById(req.params.userId, req.body);
@@ -40,4 +43,5 @@ module.exports = {
   getPortalUser,
   updatePortalUser,
   deletePortalUser,
+  getPortalUserViaToken,
 };

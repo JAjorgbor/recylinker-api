@@ -122,12 +122,11 @@ const verifyEmail = async (vCode, userId) => {
     if (error instanceof ApiError) {
       // Token expired error, but email verification was successful
       throw error;
-    } 
+    }
 
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Email verification failed');
   }
 };
-
 
 const verifyOTP = async (otp, userId) => {
   try {
@@ -229,6 +228,4 @@ module.exports = {
   updateEmail,
   confirmUpdateEmail,
   updateOtpOption,
-  updateEmail,
-  confirmUpdateEmail,
 };
