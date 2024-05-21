@@ -60,6 +60,7 @@ const portalUserSchema = mongoose.Schema(
       city: { type: String, required: true, trim: true },
       state: { type: String, default: 'abuja', trim: true },
       longitude: { type: Number, required: true, trim: true },
+      locationPhotos: { type: [String], required: true },
       latitude: { type: Number, required: true, trim: true },
     },
     dateOfBirth: {

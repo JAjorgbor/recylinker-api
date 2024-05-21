@@ -4,9 +4,10 @@ const ApiError = require('../utils/ApiError');
 const { App } = require('../models');
 const {
   cloudinary,
-  multerUploader,
+  parseMultipartForm,
+  cleanFiles,
+  cleanFields,
   createPublicId,
-  deleteMulterUpload,
   uploadToCloudinary,
 } = require('../utils/imageProcessor');
 
@@ -14,18 +15,20 @@ const { portalAgencyAuthService, portalAgencyService, tokenService, emailService
 
 const createAccount = catchAsync(async (req, res) => {
   try {
-    const { files, body } = req;
-    const { brandLogo, locationPhotos1, locationPhotos2, locationPhotos3 } = files;
+    const [fields, rawFiles] = await parseMultipartForm(req);
+    const recyclableCategories = fields['recyclableCategories[]'];
+    const files = cleanFiles(rawFiles);
+    const [brandLogo, locationPhotos1, locationPhotos2, locationPhotos3] = files;
+    const body = cleanFields(fields);
     const { password, confirmPassword } = body;
-
     if (password !== confirmPassword) throw new ApiError(httpStatus.BAD_REQUEST, 'Passwords must match');
 
     // Upload brand logo to Cloudinary
     const storedBrandLogo = await uploadToCloudinary(
       `recylinker/agencies/brandLogos`,
-      'brand-logo',
       body.brandName,
-      brandLogo[0]
+      'brand-logo',
+      brandLogo
     );
     body.brandLogo = storedBrandLogo.secure_url;
 
@@ -35,33 +38,31 @@ const createAccount = catchAsync(async (req, res) => {
     let storedImage = await uploadToCloudinary(
       `recylinker/agencies/location-photos`,
       body.brandName,
-      'brand-logo',
-      locationPhotos1[0]
+      'location-photo',
+      locationPhotos1
     );
 
     storedBrandLocationPhotos.push(storedImage.secure_url);
     storedImage = await uploadToCloudinary(
       `recylinker/agencies/location-photos`,
       body.brandName,
-      'brand-logo',
-      locationPhotos2[0]
+      'location-photo',
+      locationPhotos2
     );
     storedBrandLocationPhotos.push(storedImage.secure_url);
 
     storedImage = await uploadToCloudinary(
       `recylinker/agencies/location-photos`,
       body.brandName,
-      'brand-logo',
-      locationPhotos3[0]
+      'location-photo',
+      locationPhotos3
     );
     storedBrandLocationPhotos.push(storedImage.secure_url);
     // });
 
-    console.log(storedBrandLocationPhotos);
-
-    await deleteMulterUpload();
     body.address.locationPhotos = storedBrandLocationPhotos;
     // console.log(body);
+    body.recyclableCategories = recyclableCategories;
     const user = await portalAgencyService.createPortalAgency(body);
     const tokens = await tokenService.generateAuthTokens(user);
 

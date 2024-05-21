@@ -3,20 +3,10 @@ const validate = require('../../middlewares/validate');
 const portalAgencyAuthValidation = require('../../validations/portal.agency.auth.validation');
 const portalAgencyAuthController = require('../../controllers/portal.agency.auth.controller');
 const auth = require('../../middlewares/auth');
-const { multerUploader } = require('../../utils/imageProcessor');
+// const { multerUploader } = require('../../utils/imageProcessor');
 
 const router = express.Router();
-router.post(
-  '/create-account',
-  //   validate(portalAgencyAuthValidation.createAccount),
-  multerUploader.fields([
-    { name: 'brandLogo', maxCount: 1 },
-    { name: 'locationPhotos1', maxCount: 1 },
-    { name: 'locationPhotos2', maxCount: 1 },
-    { name: 'locationPhotos3', maxCount: 1 },
-  ]),
-  portalAgencyAuthController.createAccount
-);
+router.post('/create-account', portalAgencyAuthController.createAccount);
 router.post('/login', validate(portalAgencyAuthValidation.login), portalAgencyAuthController.login);
 router.patch('/update-OTP-option', auth(), portalAgencyAuthController.updateOtpOption);
 router.post('/logout', validate(portalAgencyAuthValidation.logout), portalAgencyAuthController.logout);

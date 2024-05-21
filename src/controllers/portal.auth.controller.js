@@ -2,38 +2,73 @@ const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
 const ApiError = require('../utils/ApiError');
 const { App } = require('../models');
-const { cloudinary, multerUploader, createPublicId, deleteMulterUpload } = require('../utils/imageProcessor');
+const {
+  cloudinary,
+  parseMultipartForm,
+  cleanFiles,
+  createPublicId,
+  cleanFields,
+  uploadToCloudinary,
+} = require('../utils/imageProcessor');
 
 const { portalAuthService, portalUserService, tokenService, emailService, appService } = require('../services');
 
 const createAccount = catchAsync(async (req, res) => {
-  const { file, body } = req;
-  const { password, confirmPassword } = body;
-  if (password !== confirmPassword) throw new ApiError(httpStatus.BAD_REQUEST, 'Passwords must match');
-  if (file?.path) {
-    const storedImage = await cloudinary.uploader.upload(file.path, {
-      folder: `recylinker/residents/profile-avatars`,
-      public_id: createPublicId(body.firstName + body.lastName, 'profile-avatar', file.originalname),
-    });
-    body.avatar = storedImage.secure_url;
-    await deleteMulterUpload();
+  try {
+    const [fields, rawFiles] = await parseMultipartForm(req);
+    const files = cleanFiles(rawFiles);
+    const [avatar, locationPhotos1, locationPhotos2, locationPhotos3] = files;
+    const body = cleanFields(fields);
+    const { password, confirmPassword } = body;
+    if (password !== confirmPassword) throw new ApiError(httpStatus.BAD_REQUEST, 'Passwords must match');
+
+    // Upload brand logo to Cloudinary
+    const storedAvatar = await uploadToCloudinary(
+      `recylinker/residents/avatars`,
+      body.firstName + '-' + body.lastName,
+      'avatars',
+      avatar
+    );
+    body.avatar = storedAvatar.secure_url;
+
+    // Upload location photos to Cloudinary
+    const storedLocationPhotos = [];
+
+    let storedImage = await uploadToCloudinary(
+      `recylinker/residents/location-photos`,
+      body.firstName + '-' + body.lastName,
+      'location-photo',
+      locationPhotos1
+    );
+
+    storedLocationPhotos.push(storedImage.secure_url);
+    storedImage = await uploadToCloudinary(
+      `recylinker/residents/location-photos`,
+      body.firstName + '-' + body.lastName,
+      'location-photo',
+      locationPhotos2
+    );
+    storedLocationPhotos.push(storedImage.secure_url);
+
+    storedImage = await uploadToCloudinary(
+      `recylinker/residents/location-photos`,
+      body.firstName + '-' + body.lastName,
+      'location-photo',
+      locationPhotos3
+    );
+    storedLocationPhotos.push(storedImage.secure_url);
+    // });
+
+    body.address.locationPhotos = storedLocationPhotos;
+    // console.log(body);
+    const user = await portalUserService.createPortalUser(body);
+    const tokens = await tokenService.generateAuthTokens(user);
+
+    res.status(httpStatus.CREATED).send({ user, tokens });
+  } catch (error) {
+    console.log(error);
+    console.log(error.message);
   }
-  const user = await portalUserService.createPortalUser(body);
-  const tokens = await tokenService.generateAuthTokens(user);
-
-  const { email, firstName } = body;
-
-  // Generate the verification code for email verification
-  // const emailVerificationCode = await tokenService.generateVerifyEmailCode(user);
-
-  // Send the verification code to the user's email for email verification
-  // await emailService.PortalUserEmailVerificationCode({
-  //   to: email,
-  //   firstName,
-  //   vCode: emailVerificationCode,
-  // });
-
-  res.status(httpStatus.CREATED).send({ user, tokens });
 });
 
 const updateOtpOption = catchAsync(async (req, res) => {

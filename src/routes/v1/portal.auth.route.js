@@ -3,13 +3,11 @@ const validate = require('../../middlewares/validate');
 const portalAuthValidation = require('../../validations/portal.auth.validation');
 const portalAuthController = require('../../controllers/portal.auth.controller');
 const auth = require('../../middlewares/auth');
-const { multerUploader } = require('../../utils/imageProcessor');
 
 const router = express.Router();
 router.post(
   '/create-account',
-  multerUploader.single('avatar'),
-  validate(portalAuthValidation.createAccount),
+  //  validate(portalAuthValidation.createAccount),
   portalAuthController.createAccount
 );
 router.post('/login', validate(portalAuthValidation.login), portalAuthController.login);
