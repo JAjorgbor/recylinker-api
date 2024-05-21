@@ -35,7 +35,7 @@ const uploadToCloudinary = async (folder, category, parentName, file) => {
 const parseMultipartForm = async (req) => {
   return new Promise((resolve, reject) => {
     const form = formidable({
-      maxFileSize: 10 * 1024 * 1024,
+      maxFileSize: 50 * 1024 * 1024,
     });
     form.parse(req, (err, fields, files) => {
       if (err) {
