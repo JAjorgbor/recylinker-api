@@ -18,6 +18,7 @@ const createPublicId = (parentName, imageType, filePath) => {
 };
 
 const deleteMulterUpload = async () => {
+  return;
   try {
     await removeFolder(path.join(__dirname, 'multerUploads'), { recursive: true, force: true });
     console.log('File deleted successfully.');
@@ -37,7 +38,7 @@ const uploadToCloudinary = async (path, category, parentName, file) => {
 };
 
 // Set up multer for handling multipart/form-data (file uploads)
-const multerUploader = multer({ dest: 'multerUploads' }); // temporary destination for uploaded files
+const multerUploader = multer(); // temporary destination for uploaded files
 
 module.exports = {
   createPublicId,
