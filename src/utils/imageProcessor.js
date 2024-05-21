@@ -1,6 +1,9 @@
 const fs = require('fs');
+const path = require('path');
 const multer = require('multer'); // for handling multipart/form-data
 const cloudinary = require('cloudinary').v2;
+const util = require('util');
+const removeFolder = util.promisify(fs.rm);
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -8,20 +11,29 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const createPublicId = (productName, imageType, filePath) => {
-  productName = productName.toLowerCase();
+const createPublicId = (parentName, imageType, filePath) => {
+  parentName = parentName.toLowerCase();
   filePath = filePath.toLowerCase();
-  return `${productName}-${imageType}-${filePath}`;
+  return `${parentName}-${imageType}-${filePath}`;
 };
 
-const deleteMulterUpload = (filePath) => {
-  fs.unlink(filePath, (err) => {
+const deleteMulterUpload = async () => {
+  try {
+    await removeFolder(path.join(__dirname, 'multerUploads'), { recursive: true, force: true });
+    console.log('File deleted successfully.');
+  } catch (err) {
     if (err) {
       console.error('Error deleting file:', err);
-    } else {
-      console.log('File deleted successfully.');
     }
+  }
+};
+
+const uploadToCloudinary = async (path, category, parentName, file) => {
+  const storedImage = await cloudinary.uploader.upload(file.path, {
+    folder: path,
+    public_id: createPublicId(parentName, category, file.originalname),
   });
+  return storedImage;
 };
 
 // Set up multer for handling multipart/form-data (file uploads)
@@ -32,4 +44,5 @@ module.exports = {
   multerUploader,
   cloudinary,
   deleteMulterUpload,
+  uploadToCloudinary,
 };

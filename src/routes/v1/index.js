@@ -7,6 +7,10 @@ const config = require('../../config/config');
 const portalAuthRoute = require('./portal.auth.route');
 const portalUserRoute = require('./portal.user.route');
 
+// Portal Agency Routes
+const portalAgencyAuthRoute = require('./portal.agency.auth.route');
+const portalAgencyUserRoute = require('./portal.agency.user.route');
+
 // Console Routes
 const consoleAuthRoute = require('./console.auth.route');
 const consoleUserRoute = require('./console.user.route');
@@ -28,6 +32,15 @@ const defaultRoutes = [
   {
     path: '/portal/user',
     route: portalUserRoute,
+  },
+  // Portal Agency Routes
+  {
+    path: '/portal-agency/auth',
+    route: portalAgencyAuthRoute,
+  },
+  {
+    path: '/portal-agency/user',
+    route: portalAgencyUserRoute,
   },
   // Console Routes
   {

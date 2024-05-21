@@ -1,9 +1,9 @@
 const httpStatus = require('http-status');
 const tokenService = require('./token.service');
-const portalUserService = require('./portal.user.service');
+const portalAgencyService = require('./portal.agency.user.service');
 const emailService = require('./email.service');
 const { Token } = require('../models');
-const { PortalUser } = require('../models');
+const { PortalAgency } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { tokenTypes } = require('../config/tokens');
 
@@ -14,7 +14,7 @@ const { tokenTypes } = require('../config/tokens');
  * @returns {Promise<User>}
  */
 const loginUserWithEmailAndPassword = async (email, password) => {
-  const user = await portalUserService.getPortalUserByEmail(email);
+  const user = await portalAgencyService.getPortalAgencyByEmail(email);
   if (!user || !(await user.isPasswordMatch(password))) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Incorrect email or password');
   }
@@ -42,7 +42,7 @@ const logout = async (refreshToken) => {
 const refreshAuth = async (refreshToken) => {
   try {
     const refreshTokenDoc = await tokenService.verifyToken(refreshToken, tokenTypes.REFRESH);
-    const user = await portalUserService.getPortalUserById(refreshTokenDoc.user);
+    const user = await portalAgencyService.getPortalAgencyById(refreshTokenDoc.user);
     if (!user) {
       throw new Error();
     }
@@ -63,13 +63,13 @@ const setNewPassword = async (resetPasswordToken, newPassword) => {
   try {
     const resetPasswordTokenDoc = await tokenService.verifyToken(resetPasswordToken, tokenTypes.RESET_PASSWORD);
 
-    const user = await portalUserService.getPortalUserById(resetPasswordTokenDoc.user);
+    const user = await portalAgencyService.getPortalAgencyById(resetPasswordTokenDoc.user);
 
     if (!user) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid token!');
     }
 
-    await portalUserService.updatePortalUserById(user.id, { 'security.password': newPassword });
+    await portalAgencyService.updatePortalAgencyById(user.id, { 'security.password': newPassword });
     await Token.deleteMany({ user: user.id, type: tokenTypes.RESET_PASSWORD });
   } catch (error) {
     if (error instanceof ApiError) {
@@ -95,7 +95,7 @@ const verifyEmail = async (vCode, userId) => {
     }
 
     // Get the user associated with the email verification code
-    const user = await portalUserService.getPortalUserById(verifyEmailTokenDoc.user);
+    const user = await portalAgencyService.getPortalAgencyById(verifyEmailTokenDoc.user);
 
     if (!user) {
       throw new ApiError(httpStatus.NOT_FOUND, 'User not found', 404);
@@ -105,7 +105,7 @@ const verifyEmail = async (vCode, userId) => {
     await Token.deleteMany({ user: user.id, type: tokenTypes.VERIFY_EMAIL });
 
     // Update the user's email verification status to true
-    await portalUserService.updatePortalUserById(user.id, { isEmailVerified: true });
+    await portalAgencyService.updatePortalAgencyById(user.id, { isEmailVerified: true });
 
     return { message: 'Email successfully verified' }; // Email verification success message
   } catch (error) {
@@ -130,7 +130,7 @@ const verifyEmail = async (vCode, userId) => {
 const verifyOTP = async (otp, userId) => {
   try {
     const otpDoc = await tokenService.verifyAccessOTP(otp, userId);
-    const user = await portalUserService.getPortalUserById(otpDoc.user);
+    const user = await portalAgencyService.getPortalAgencyById(otpDoc.user);
     if (!user) {
       throw new ApiError(httpStatus.NOT_FOUND, 'OTP does not exist');
     }
@@ -146,13 +146,13 @@ const updateOtpOption = async (req) => {
     const { id } = req.user;
     const { otpOption } = req.body;
 
-    const portalUser = await PortalUser.findByIdAndUpdate(id, { otpOption }, { new: true });
+    const portalAgency = await PortalAgency.findByIdAndUpdate(id, { otpOption }, { new: true });
 
-    if (!portalUser) {
+    if (!portalAgency) {
       throw new ApiError(httpStatus.NOT_FOUND, ' Portal User not found');
     }
 
-    return portalUser;
+    return portalAgency;
   } catch (error) {
     console.log(error);
   }
@@ -160,14 +160,14 @@ const updateOtpOption = async (req) => {
 
 const resetPassword = async (payload) => {
   try {
-    const user = await portalUserService.getPortalUserByEmail(payload.email);
+    const user = await portalAgencyService.getPortalAgencyByEmail(payload.email);
     if (!user) {
       throw new ApiError(httpStatus.NOT_FOUND, 'No user exists for this email');
     }
 
     const resetPasswordToken = await tokenService.generateResetPasswordToken(payload.email);
     // send reset password email
-    await emailService.PortalUserResetPassword({
+    await emailService.PortalAgencyResetPassword({
       to: payload.email,
       token: resetPasswordToken,
       firstName: user.firstName,
@@ -189,7 +189,7 @@ const resetPassword = async (payload) => {
  * Update existing email for authenticated user
  */
 const updateEmail = async (user, body) => {
-  const checkUser = await portalUserService.getPortalUserByEmail(body.oldEmail);
+  const checkUser = await portalAgencyService.getPortalAgencyByEmail(body.oldEmail);
   if (!checkUser) {
     throw new ApiError(404, 'No user exists for this email address');
   }
@@ -200,7 +200,7 @@ const updateEmail = async (user, body) => {
 
   const code = await tokenService.generateUpdateEmailCode(user);
 
-  await emailService.PortalUserUpdateEmail({
+  await emailService.PortalAgencyUpdateEmail({
     to: body.newEmail,
     firstName: user.firstName,
     code,
@@ -209,11 +209,11 @@ const updateEmail = async (user, body) => {
 
 const confirmUpdateEmail = async (code, newEmail) => {
   const updateEmailTokenDoc = await tokenService.verifyUpdateEmailCode(code);
-  const user = await portalUserService.getPortalUserById(updateEmailTokenDoc.user);
+  const user = await portalAgencyService.getPortalAgencyById(updateEmailTokenDoc.user);
   if (!user) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid token!');
   }
-  await portalUserService.updatePortalUserById(user.id, { email: newEmail });
+  await portalAgencyService.updatePortalAgencyById(user.id, { email: newEmail });
 };
 
 module.exports = {

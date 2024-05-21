@@ -1,7 +1,9 @@
 module.exports.portalAuthService = require('./portal.auth.service');
+module.exports.portalAgencyAuthService = require('./portal.agency.auth.service');
 module.exports.emailService = require('./email.service');
 module.exports.tokenService = require('./token.service');
 module.exports.portalUserService = require('./portal.user.service');
+module.exports.portalAgencyService = require('./portal.agency.user.service');
 module.exports.consoleUserService = require('./console.user.service');
 module.exports.consoleAuthService = require('./console.auth.service');
 module.exports.appService = require('./app.service');

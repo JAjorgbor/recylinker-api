@@ -2,48 +2,84 @@ const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
 const ApiError = require('../utils/ApiError');
 const { App } = require('../models');
-const { cloudinary, multerUploader, createPublicId, deleteMulterUpload } = require('../utils/imageProcessor');
+const {
+  cloudinary,
+  multerUploader,
+  createPublicId,
+  deleteMulterUpload,
+  uploadToCloudinary,
+} = require('../utils/imageProcessor');
 
-const { portalAuthService, portalUserService, tokenService, emailService, appService } = require('../services');
+const { portalAgencyAuthService, portalAgencyService, tokenService, emailService, appService } = require('../services');
 
 const createAccount = catchAsync(async (req, res) => {
-  const { file, body } = req;
-  const { password, confirmPassword } = body;
-  if (password !== confirmPassword) throw new ApiError(httpStatus.BAD_REQUEST, 'Passwords must match');
-  if (file?.path) {
-    const storedImage = await cloudinary.uploader.upload(file.path, {
-      folder: `recylinker/residents/profile-avatars`,
-      public_id: createPublicId(body.firstName + body.lastName, 'profile-avatar', file.originalname),
-    });
-    body.avatar = storedImage.secure_url;
+  try {
+    const { files, body } = req;
+    const { brandLogo, locationPhotos1, locationPhotos2, locationPhotos3 } = files;
+    const { password, confirmPassword } = body;
+
+    if (password !== confirmPassword) throw new ApiError(httpStatus.BAD_REQUEST, 'Passwords must match');
+
+    // Upload brand logo to Cloudinary
+    const storedBrandLogo = await uploadToCloudinary(
+      `recylinker/agencies/brandLogos`,
+      'brand-logo',
+      body.brandName,
+      brandLogo[0]
+    );
+    body.brandLogo = storedBrandLogo.secure_url;
+
+    // Upload location photos to Cloudinary
+    const storedBrandLocationPhotos = [];
+
+    let storedImage = await uploadToCloudinary(
+      `recylinker/agencies/location-photos`,
+      body.brandName,
+      'brand-logo',
+      locationPhotos1[0]
+    );
+
+    storedBrandLocationPhotos.push(storedImage.secure_url);
+    storedImage = await uploadToCloudinary(
+      `recylinker/agencies/location-photos`,
+      body.brandName,
+      'brand-logo',
+      locationPhotos2[0]
+    );
+    storedBrandLocationPhotos.push(storedImage.secure_url);
+
+    storedImage = await uploadToCloudinary(
+      `recylinker/agencies/location-photos`,
+      body.brandName,
+      'brand-logo',
+      locationPhotos3[0]
+    );
+    storedBrandLocationPhotos.push(storedImage.secure_url);
+    // });
+
+    console.log(storedBrandLocationPhotos);
+
     await deleteMulterUpload();
+    body.address.locationPhotos = storedBrandLocationPhotos;
+    // console.log(body);
+    const user = await portalAgencyService.createPortalAgency(body);
+    const tokens = await tokenService.generateAuthTokens(user);
+
+    res.status(httpStatus.CREATED).send({ user, tokens });
+  } catch (error) {
+    console.log(error);
+    console.log(error.message);
   }
-  const user = await portalUserService.createPortalUser(body);
-  const tokens = await tokenService.generateAuthTokens(user);
-
-  const { email, firstName } = body;
-
-  // Generate the verification code for email verification
-  // const emailVerificationCode = await tokenService.generateVerifyEmailCode(user);
-
-  // Send the verification code to the user's email for email verification
-  // await emailService.PortalUserEmailVerificationCode({
-  //   to: email,
-  //   firstName,
-  //   vCode: emailVerificationCode,
-  // });
-
-  res.status(httpStatus.CREATED).send({ user, tokens });
 });
 
 const updateOtpOption = catchAsync(async (req, res) => {
-  const portalUser = await portalAuthService.updateOtpOption(req);
-  res.send(portalUser);
+  const portalAgency = await portalAgencyAuthService.updateOtpOption(req);
+  res.send(portalAgency);
 });
 
 const login = catchAsync(async (req, res) => {
   const { email, password } = req.body;
-  const user = await portalAuthService.loginUserWithEmailAndPassword(email, password);
+  const user = await portalAgencyAuthService.loginUserWithEmailAndPassword(email, password);
   const tokens = await tokenService.generateAuthTokens(user);
   // const activeApp = await appService.getApp(user.app);
   let useOtp = user.otpOption;
@@ -64,12 +100,12 @@ const login = catchAsync(async (req, res) => {
 });
 
 const logout = catchAsync(async (req, res) => {
-  await portalAuthService.logout(req.body.refreshToken);
+  await portalAgencyAuthService.logout(req.body.refreshToken);
   res.status(httpStatus.NO_CONTENT).send();
 });
 
 const refreshTokens = catchAsync(async (req, res) => {
-  const tokens = await portalAuthService.refreshAuth(req.body.refreshToken);
+  const tokens = await portalAgencyAuthService.refreshAuth(req.body.refreshToken);
   res.send({ ...tokens });
 });
 
@@ -78,7 +114,7 @@ const resetPassword = catchAsync(async (req, res) => {
   const portalUrl = req.app.portalUrl;
 
   // Call the resetPassword service and await its response
-  const result = await portalAuthService.resetPassword(
+  const result = await portalAgencyAuthService.resetPassword(
     {
       email: req.body.email,
     },
@@ -90,19 +126,19 @@ const resetPassword = catchAsync(async (req, res) => {
 
 // Sets new password after request to reset password
 const setNewPassword = catchAsync(async (req, res) => {
-  await portalAuthService.setNewPassword(req.params.token, req.body.password);
+  await portalAgencyAuthService.setNewPassword(req.params.token, req.body.password);
   res.status(httpStatus.NO_CONTENT).send();
 });
 
 // Trigger email update
 const updateEmail = catchAsync(async (req, res) => {
-  await portalAuthService.updateEmail(req.user, req.body);
+  await portalAgencyAuthService.updateEmail(req.user, req.body);
   res.status(httpStatus.NO_CONTENT).send();
 });
 
 // Verify and confirm request to update email
 const confirmUpdateEmail = catchAsync(async (req, res) => {
-  await portalAuthService.confirmUpdateEmail(req.params.code, req.body.newEmail);
+  await portalAgencyAuthService.confirmUpdateEmail(req.params.code, req.body.newEmail);
   res.status(httpStatus.NO_CONTENT).send();
 });
 
@@ -113,7 +149,7 @@ const resendVerificationEmail = catchAsync(async (req, res) => {
   const emailVerificationCode = await tokenService.generateVerifyEmailCode(req.user);
 
   // Resend the verification code to the user's email for email verification
-  await emailService.PortalUserEmailVerificationCode({
+  await emailService.PortalAgencyEmailVerificationCode({
     to: email,
     firstName,
     vCode: emailVerificationCode,
@@ -128,7 +164,7 @@ const resendLoginOTP = catchAsync(async (req, res) => {
   // send user OTP
   const OTP = await tokenService.generateUserAccessOTP(user);
 
-  await emailService.PortalUserVerifyAccessWithOTP({
+  await emailService.PortalAgencyVerifyAccessWithOTP({
     to: user.email,
     firstName: user.firstName,
     otp: OTP,
@@ -149,7 +185,7 @@ const verifyEmail = catchAsync(async (req, res) => {
 
   try {
     // Call the verifyEmail function from the service layer
-    await portalAuthService.verifyEmail(vCode, userId);
+    await portalAgencyAuthService.verifyEmail(vCode, userId);
 
     // Email verification successful
     res.status(httpStatus.OK).send({ message: 'Email verification was successful. You can now access your account.' });
@@ -188,7 +224,7 @@ const verifyEmail = catchAsync(async (req, res) => {
   }
 });
 const verifyOTP = catchAsync(async (req, res) => {
-  await portalAuthService.verifyOTP(req.body.otp, req.user.id);
+  await portalAgencyAuthService.verifyOTP(req.body.otp, req.user.id);
   res.status(httpStatus.NO_CONTENT).send();
 });
 
@@ -196,14 +232,14 @@ const updatePassword = catchAsync(async (req, res) => {
   try {
     const { id, email } = req.user;
     const { currentPassword, newPassword, confirmNewPassword } = req.body;
-    const user = await portalAuthService.loginUserWithEmailAndPassword(email, currentPassword);
+    const user = await portalAgencyAuthService.loginUserWithEmailAndPassword(email, currentPassword);
     if (!user) {
       throw new ApiError(400, 'Incorrect password');
     }
     if (newPassword !== confirmNewPassword) {
       throw new ApiError(400, 'Passwords are not the same.');
     }
-    await portalAuthService.updatePassword(id, newPassword);
+    await portalAgencyAuthService.updatePassword(id, newPassword);
     res.status(httpStatus.NO_CONTENT).send();
   } catch (error) {
     // Handle the error appropriately without re-throwing it
