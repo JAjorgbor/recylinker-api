@@ -23,6 +23,7 @@ const createPublicId = (parentName, imageType, filepath) => {
 
 const uploadToCloudinary = async (folder, category, parentName, file) => {
   const storedImage = await cloudinary.uploader.upload(file.filepath, {
+    timeout: 60000,
     folder: folder,
     public_id: createPublicId(parentName, category, file.name),
   });
